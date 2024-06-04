@@ -1,0 +1,25 @@
+{
+	// See https://go.microsoft.com/fwlink/?LinkId=733558
+	// for the documentation about the tasks.json format
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "go run",
+			"type": "shell",
+			"command": "go run ./examples/camera/platformer",
+			"problemMatcher": [ ],
+			// "presentation": {
+			//     "echo": false,
+			//     "reveal": "never",
+			//     "focus": false,
+			//     "panel": "shared",
+			//     "showReuseMessage": true,
+			//     "clear": false
+			// },
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		}
+	]
+}
