@@ -34,7 +34,7 @@ type SpriteSheetOptions struct {
 
 // NewSpriteSheet returns a new SpriteSheet
 func NewSpriteSheet(img *ebiten.Image, origSpriteWidth, origSpriteHeight int, options SpriteSheetOptions) *SpriteSheet {
-	w, h := img.Size()
+	w, h := img.Bounds().Dx(), img.Bounds().Dy()
 
 	defaultOptions := SpriteSheetOptions{
 		Scale:            1,
@@ -60,9 +60,9 @@ func NewSpriteSheet(img *ebiten.Image, origSpriteWidth, origSpriteHeight int, op
 	}
 
 	// all white copy of image without any opacity which could ruin outline
-	imgWhite := ebiten.NewImage(img.Size())
+	imgWhite := ebiten.NewImage(img.Bounds().Dx(), img.Bounds().Dy())
 	op := &ebiten.DrawImageOptions{}
-	op.ColorM.Scale(0, 0, 0, 0xff)
+	op.ColorScale.Scale(0, 0, 0, 0xff)
 	op.ColorM.Translate(0xff, 0xff, 0xff, 0)
 	imgWhite.DrawImage(img, op)
 

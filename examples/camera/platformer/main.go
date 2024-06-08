@@ -96,10 +96,10 @@ func (g *Game) Update() error {
 		return ErrNormalExit
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyG) {
-		cam.Rotate(math.Pi / 100)
+		cam.RotateScreen(math.Pi / 100)
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyR) {
-		cam.Rotate(-math.Pi / 100)
+		cam.RotateScreen(-math.Pi / 100)
 	}
 
 	// Physics
@@ -227,7 +227,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		fmt.Sprintf(
 			"Camera:\n  X: %3.3f\n  Y: %3.3f\n  W: %d\n  H: %d\n  Rot: %3.3f\n  Zoom: %3.3f\n"+
 				"Tiles:\n  PlayerX: %d\n  PlayerY: %d\n  MouseX: %1.0f\n  MouseY: %1.0f",
-			cam.X, cam.Y, cam.Surface.Bounds().Size().X, cam.Surface.Bounds().Size().Y, cam.Rot, cam.Scale,
+			cam.Position.X, cam.Position.Y, cam.Surface.Bounds().Size().X, cam.Surface.Bounds().Size().Y, cam.ScreenRotation, cam.Scale,
 			px, py, mx, my,
 		))
 }

@@ -6,7 +6,7 @@
 		{
 			"label": "go run",
 			"type": "shell",
-			"command": "go run ./examples/camera/platformer",
+			"command": "go run ./examples/camera/world",
 			"problemMatcher": [ ],
 			// "presentation": {
 			//     "echo": false,
