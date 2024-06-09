@@ -80,9 +80,9 @@ type Dungeon struct {
 
 	Border                    int // don't place tiles in this area
 	WallThickness             int // how many tiles thick the walls are
-	MinDoorSize               int
+	MinDoorSize               int // how wide a door/corridor is
 	MaxDoorSize               int
-	AllowRandomCorridorOffset bool // 
+	AllowRandomCorridorOffset bool // places door at random position in the wall
 	MaxRoomWidth              int
 	MaxRoomHeight             int
 	MinRoomWidth              int
