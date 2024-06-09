@@ -6,7 +6,7 @@
 		{
 			"label": "go run",
 			"type": "shell",
-			"command": "go run ./examples/camera/world",
+			"command": "go run ./examples/dungeon",
 			"problemMatcher": [ ],
 			// "presentation": {
 			//     "echo": false,
