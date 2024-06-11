@@ -12,6 +12,15 @@ type IsometricDrawable interface {
 	Draw(camera *Camera)
 }
 
+// Billboard represents a sprite that always faces the camera
+type Billboard struct {
+	Position *Vector
+
+	RotatedPos *Vector
+
+	Sprite *ebiten.Image
+}
+
 // SpriteStack represents a stack of sprites (or basically floor tiles)
 type SpriteStack struct {
 	Position *Vector
@@ -47,6 +56,28 @@ type Wall struct {
 
 	TopSprite   *ebiten.Image
 	WallSprites []*ebiten.Image // if len() == 1, same will be used for all walls
+}
+
+// NewBillboard returns a *Billboard
+func NewBillboard(sprite *ebiten.Image, position *Vector) *Billboard {
+	s := &Billboard{
+		Position:   position,
+		RotatedPos: NewVector(0, 0),
+		Sprite:     sprite,
+	}
+
+	return s
+}
+
+// Draw draws a rotated texture
+func (s *Billboard) Draw(camera *Camera) {
+	worldRotationPoint := camera.Position
+	s.RotatedPos = s.Position.RotateAround(camera.WorldRotation, worldRotationPoint)
+	w, d := float64(s.Sprite.Bounds().Dx()), float64(s.Sprite.Bounds().Dy())
+	op := &ebiten.DrawImageOptions{}
+	op.ColorScale.Scale(1, 1, 1, 1)
+	op = camera.GetTranslation(op, s.RotatedPos.X-w/2, s.RotatedPos.Y-d/2)
+	camera.Surface.DrawImage(s.Sprite, op)
 }
 
 // NewSpriteStack returns a *SpriteStack

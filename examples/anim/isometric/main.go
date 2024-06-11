@@ -1,4 +1,4 @@
-// Package main 👍
+// Package main
 package main
 
 import (
@@ -14,18 +14,23 @@ import (
 	zen "github.com/melonfunction/ebiten-zen"
 )
 
+//go:embed car.png
 //go:embed tiles.png
 var embedded embed.FS
 
 // vars
 var (
 	camera *zen.Camera
-	floor  *zen.Floor
-	wall   *zen.Wall
 
-	WindowWidth  = 640 * 2
-	WindowHeight = 480 * 2
-	SpriteSheet  *zen.SpriteSheet
+	floor       *zen.Floor
+	wall        *zen.Wall
+	spriteStack *zen.SpriteStack
+	billboard   *zen.Billboard
+
+	WindowWidth      = 640 * 2
+	WindowHeight     = 480 * 2
+	SpriteSheetTiles *zen.SpriteSheet
+	SpriteSheetCar   *zen.SpriteSheet
 
 	ErrNormalExit = errors.New("Normal exit")
 )
@@ -71,6 +76,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// wall.Rotation += 0.01
 	floor.Draw(camera)
 	wall.Draw(camera)
+	spriteStack.Draw(camera)
+	billboard.Draw(camera)
 
 	// camera.Surface.DrawImage(SpriteSheet.GetSprite(3, 0), camera.GetTranslation(&ebiten.DrawImageOptions{}, 0, 0))
 	mx, my := ebiten.CursorPosition()
@@ -87,10 +94,23 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func main() {
+	log.SetFlags(log.Lshortfile)
+
 	if b, err := embedded.ReadFile("tiles.png"); err == nil {
 		if s, err := png.Decode(bytes.NewReader(b)); err == nil {
 			sprites := ebiten.NewImageFromImage(s)
-			SpriteSheet = zen.NewSpriteSheet(sprites, 16, 16, zen.SpriteSheetOptions{
+			SpriteSheetTiles = zen.NewSpriteSheet(sprites, 16, 16, zen.SpriteSheetOptions{
+				Scale: 2,
+			})
+		}
+	} else {
+		log.Fatal(err)
+	}
+
+	if b, err := embedded.ReadFile("car.png"); err == nil {
+		if s, err := png.Decode(bytes.NewReader(b)); err == nil {
+			sprites := ebiten.NewImageFromImage(s)
+			SpriteSheetCar = zen.NewSpriteSheet(sprites, 15, 32, zen.SpriteSheetOptions{
 				Scale: 2,
 			})
 		}
@@ -104,28 +124,35 @@ func main() {
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
 	camera = zen.NewCamera(WindowWidth, WindowHeight, 0, 0, 0, 1)
-	floor = &zen.Floor{
-		Sprite:        SpriteSheet.GetSprite(4, 0),
-		Rotation:      0,
-		Position:      zen.NewVector(-float64(SpriteSheet.SpriteWidth)*2, 0),
-		RotationPoint: zen.NewVector(float64(SpriteSheet.SpriteWidth)/2, float64(SpriteSheet.SpriteWidth)/2),
-		RotatedPos:    zen.NewVector(0, 0),
-	}
+	floor = zen.NewFloor(
+		SpriteSheetTiles.GetSprite(4, 0),
+		0,
+		zen.NewVector(-float64(SpriteSheetTiles.SpriteWidth)*4, 0),
+		zen.NewVector(float64(SpriteSheetTiles.SpriteWidth)/2, float64(SpriteSheetTiles.SpriteWidth)/2))
 
-	wall = &zen.Wall{
-		Height:    float64(SpriteSheet.SpriteWidth),
-		TopSprite: SpriteSheet.GetSprite(0, 0),
-		WallSprites: []*ebiten.Image{
-			SpriteSheet.GetSprite(2, 0),
-			SpriteSheet.GetSprite(1, 0),
-			SpriteSheet.GetSprite(1, 0),
-			SpriteSheet.GetSprite(1, 0),
+	wall = zen.NewWall(
+		SpriteSheetTiles.GetSprite(0, 0),
+		[]*ebiten.Image{
+			SpriteSheetTiles.GetSprite(2, 0),
+			SpriteSheetTiles.GetSprite(1, 0),
+			SpriteSheetTiles.GetSprite(1, 0),
+			SpriteSheetTiles.GetSprite(1, 0),
 		},
-		Rotation:      0,
-		Position:      zen.NewVector(-float64(SpriteSheet.SpriteWidth), 0),
-		RotationPoint: zen.NewVector(float64(SpriteSheet.SpriteWidth)/2, float64(SpriteSheet.SpriteWidth)/2),
-		RotatedPos:    zen.NewVector(0, 0),
-	}
+		float64(SpriteSheetTiles.SpriteWidth),
+		0,
+		zen.NewVector(-float64(SpriteSheetTiles.SpriteWidth)*3, 0),
+		zen.NewVector(float64(SpriteSheetTiles.SpriteWidth)/2, float64(SpriteSheetTiles.SpriteWidth)/2),
+	)
+
+	spriteStack = zen.NewSpriteStack(
+		SpriteSheetCar,
+		0,
+		zen.NewVector(0, 0),
+		zen.NewVector(float64(SpriteSheetCar.SpriteWidth)/2, float64(SpriteSheetCar.SpriteWidth)/2))
+
+	billboard = zen.NewBillboard(
+		SpriteSheetTiles.GetSprite(5, 0),
+		zen.NewVector(float64(SpriteSheetTiles.SpriteWidth)*2, 0))
 
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
