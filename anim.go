@@ -69,16 +69,12 @@ func NewSpriteSheet(img *ebiten.Image, origSpriteWidth, origSpriteHeight int, op
 
 	// all white copy of image without any opacity which could ruin outline
 	imgWhite := ebiten.NewImage(img.Bounds().Dx(), img.Bounds().Dy())
-	// op := &ebiten.DrawImageOptions{}
-	// op.ColorM.Scale(0, 0, 0, 0xff)
-	// op.ColorM.Translate(0xff, 0xff, 0xff, 0)
 
 	op := &colorm.DrawImageOptions{}
 	var cm colorm.ColorM
 	cm.Scale(0, 0, 0, 1)
 	cm.Translate(1, 1, 1, 0)
 	colorm.DrawImage(imgWhite, img, cm, op)
-	// imgWhite.DrawImage(img, op)
 
 	p := 2 + options.OutlineThickness*2
 	paddedImg := ebiten.NewImage(

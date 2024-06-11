@@ -6,6 +6,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"image/color"
 	"image/png"
 	"log"
 
@@ -46,9 +47,11 @@ func (g *Game) Update() error {
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyG) {
 		camera.RotateWorld(-0.025)
+		spriteStack.Rotation -= 0.025
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyR) {
 		camera.RotateWorld(0.025)
+		spriteStack.Rotation += 0.025
 	}
 
 	// camera movement isn't adjusted by camera rotation here
@@ -100,7 +103,9 @@ func main() {
 		if s, err := png.Decode(bytes.NewReader(b)); err == nil {
 			sprites := ebiten.NewImageFromImage(s)
 			SpriteSheetTiles = zen.NewSpriteSheet(sprites, 16, 16, zen.SpriteSheetOptions{
-				Scale: 2,
+				Scale:            2,
+				OutlineThickness: 2, // Spritestack creates a new spritesheet and reimplements this value
+				OutlineColor:     color.RGBA{255, 0, 0, 255},
 			})
 		}
 	} else {
@@ -111,7 +116,9 @@ func main() {
 		if s, err := png.Decode(bytes.NewReader(b)); err == nil {
 			sprites := ebiten.NewImageFromImage(s)
 			SpriteSheetCar = zen.NewSpriteSheet(sprites, 15, 32, zen.SpriteSheetOptions{
-				Scale: 2,
+				Scale:            2,
+				OutlineThickness: 2, // Spritestack creates a new spritesheet and reimplements this value
+				OutlineColor:     color.RGBA{0, 255, 0, 255},
 			})
 		}
 	} else {

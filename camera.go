@@ -31,6 +31,12 @@ func NewCamera(width, height int, x, y, rotation, zoom float64) *Camera {
 	}
 }
 
+// Deallocate deallocates the Surface
+func (c *Camera) Deallocate() *Camera {
+	c.Surface.Deallocate()
+	return c
+}
+
 // SetPosition looks at a position
 func (c *Camera) SetPosition(x, y float64) *Camera {
 	c.Position.X = x

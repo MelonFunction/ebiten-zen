@@ -2,10 +2,16 @@
 package zen
 
 import (
+	_ "embed"
+	"image/color"
+	"log"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
+
+//go:embed outlineshader.go
+var outline_go []byte
 
 // IsometricDrawable is an interface that Wall and Floor must satisfy
 type IsometricDrawable interface {
@@ -30,8 +36,13 @@ type SpriteStack struct {
 	RotationPoint *Vector
 	RotatedPos    *Vector
 
-	spriteSheet *SpriteSheet
-	Sprites     []*ebiten.Image // if len() == 1, same will be used for all walls
+	outlineShader    *ebiten.Shader
+	outlineThickness int // stolen from spritestack, added in later as shader
+	outlineColor     color.RGBA
+
+	internalImage *ebiten.Image
+	spriteSheet   *SpriteSheet
+	Sprites       []*ebiten.Image // if len() == 1, same will be used for all walls
 }
 
 // Floor represents a floor tile in the world
@@ -82,15 +93,60 @@ func (s *Billboard) Draw(camera *Camera) {
 
 // NewSpriteStack returns a *SpriteStack
 func NewSpriteStack(spriteSheet *SpriteSheet, rotation float64, position, rotationPoint *Vector) *SpriteStack {
+	size := math.Max(float64(spriteSheet.SpriteWidth), float64(spriteSheet.SpriteHeight))
+
+	adjustedSpriteSheet := spriteSheet
+	if spriteSheet.OutlineThickness > 0 {
+		adjustedSpriteSheet = NewSpriteSheet(
+			spriteSheet.Image,
+			spriteSheet.OrigSpriteWidth,
+			spriteSheet.OrigSpriteHeight,
+			SpriteSheetOptions{
+				Scale: spriteSheet.Scale,
+			})
+	}
+
+	shader, err := ebiten.NewShader(outline_go)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	s := &SpriteStack{
-		spriteSheet:   spriteSheet,
-		Rotation:      rotation,
-		Position:      position,
-		RotationPoint: rotationPoint,
-		RotatedPos:    NewVector(0, 0),
+		spriteSheet:      adjustedSpriteSheet,
+		Rotation:         rotation,
+		Position:         position,
+		RotationPoint:    rotationPoint,
+		RotatedPos:       NewVector(0, 0),
+		internalImage:    ebiten.NewImage(int(size)*2, int(size)*2),
+		outlineShader:    shader,
+		outlineThickness: spriteSheet.OutlineThickness,
+		outlineColor:     spriteSheet.OutlineColor,
 	}
 
 	return s
+}
+
+// PreRender draws the stack to an offscreen image, allowing for outline
+func (s *SpriteStack) PreRender(image *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Rotate(0)
+	op.ColorScale.Scale(1, 1, 1, 1)
+
+	s.internalImage.Clear()
+	w, h := s.spriteSheet.SpriteWidth, s.spriteSheet.SpriteHeight
+	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+	op.GeoM.Rotate(s.Rotation)
+	op.GeoM.Translate(float64(w)/2, float64(h)/2)
+	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+	op.GeoM.Translate(
+		float64(s.internalImage.Bounds().Dx())/2,
+		float64(s.internalImage.Bounds().Dy())/2)
+
+	for i := s.spriteSheet.SpritesHigh - 1; i >= 0; i-- {
+		sprite := s.spriteSheet.GetSprite(0, i)
+		op.GeoM.Translate(0, math.Min(-1, -float64(s.spriteSheet.Scale)+0.5))
+		image.DrawImage(sprite, op)
+	}
 }
 
 // Draw draws a rotated texture
@@ -101,15 +157,21 @@ func (s *SpriteStack) Draw(camera *Camera) {
 	s.RotatedPos = s.Position.RotateAround(camera.WorldRotation, worldRotationPoint)
 
 	op := &ebiten.DrawImageOptions{}
-	w, d := float64(s.spriteSheet.SpriteWidth), float64(s.spriteSheet.SpriteHeight)
-	op = camera.GetRotation(op, rotation, -w/2, -d/2)
 	op.ColorScale.Scale(1, 1, 1, 1)
-	op = camera.GetTranslation(op, s.RotatedPos.X-w/2, s.RotatedPos.Y-d/2)
-	for i := s.spriteSheet.SpritesHigh - 1; i >= 0; i-- {
-		sprite := s.spriteSheet.GetSprite(0, i)
-		op.GeoM.Translate(0, -1.5) // seems to look best, maybe TODO add config var
-		camera.Surface.DrawImage(sprite, op)
+	op = camera.GetTranslation(op, s.RotatedPos.X-float64(s.internalImage.Bounds().Dx())/2, s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())/2)
+	s.internalImage.Clear()
+	s.PreRender(s.internalImage)
+	// camera.Surface.DrawImage(s.internalImage, op)
+
+	sp := &ebiten.DrawRectShaderOptions{}
+	sp.GeoM = op.GeoM
+	sp.Uniforms = map[string]any{
+		"OutlineThickness": float32(s.outlineThickness),
+		"OutlineColor":     []float32{float32(s.outlineColor.R), float32(s.outlineColor.G), float32(s.outlineColor.B), float32(s.outlineColor.A)},
 	}
+	sp.Images[0] = s.internalImage
+	camera.Surface.DrawRectShader(s.internalImage.Bounds().Dx(), s.internalImage.Bounds().Dy(), s.outlineShader, sp)
+
 }
 
 // NewFloor returns a *Floor
