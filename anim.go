@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/colorm"
 )
 
 // SpriteSheet stores the image and information about the sizing of the SpriteSheet
@@ -19,6 +20,9 @@ type SpriteSheet struct {
 	SpriteHeight int
 	SpritesWide  int // how many sprites are in the sheet
 	SpritesHigh  int
+
+	OrigSpriteWidth  int // how big each sprite is
+	OrigSpriteHeight int
 
 	Scale            int
 	OutlineThickness int
@@ -51,20 +55,30 @@ func NewSpriteSheet(img *ebiten.Image, origSpriteWidth, origSpriteHeight int, op
 	}
 
 	s := &SpriteSheet{
-		Image:        img,
-		SpriteWidth:  origSpriteWidth,
-		SpriteHeight: origSpriteHeight,
-		SpritesWide:  w / origSpriteWidth,
-		SpritesHigh:  h / origSpriteHeight,
-		Scale:        options.Scale,
+		Image:            img,
+		SpriteWidth:      origSpriteWidth,
+		SpriteHeight:     origSpriteHeight,
+		OrigSpriteWidth:  origSpriteWidth,
+		OrigSpriteHeight: origSpriteHeight,
+		SpritesWide:      w / origSpriteWidth,
+		SpritesHigh:      h / origSpriteHeight,
+		Scale:            options.Scale,
+		OutlineThickness: options.OutlineThickness,
+		OutlineColor:     options.OutlineColor,
 	}
 
 	// all white copy of image without any opacity which could ruin outline
 	imgWhite := ebiten.NewImage(img.Bounds().Dx(), img.Bounds().Dy())
-	op := &ebiten.DrawImageOptions{}
-	op.ColorScale.Scale(0, 0, 0, 0xff)
-	op.ColorM.Translate(0xff, 0xff, 0xff, 0)
-	imgWhite.DrawImage(img, op)
+	// op := &ebiten.DrawImageOptions{}
+	// op.ColorM.Scale(0, 0, 0, 0xff)
+	// op.ColorM.Translate(0xff, 0xff, 0xff, 0)
+
+	op := &colorm.DrawImageOptions{}
+	var cm colorm.ColorM
+	cm.Scale(0, 0, 0, 1)
+	cm.Translate(1, 1, 1, 0)
+	colorm.DrawImage(imgWhite, img, cm, op)
+	// imgWhite.DrawImage(img, op)
 
 	p := 2 + options.OutlineThickness*2
 	paddedImg := ebiten.NewImage(
@@ -101,8 +115,8 @@ func NewSpriteSheet(img *ebiten.Image, origSpriteWidth, origSpriteHeight int, op
 					op.GeoM.Translate(dx+float64(zx), dy)
 					op.GeoM.Scale(float64(options.Scale), float64(options.Scale))
 					if options.OutlineThickness > 0 {
-						op.ColorM.Scale(0, 0, 0, float64(c.A)/0xff)
-						op.ColorM.Translate(float64(c.R)/0xff, float64(c.G)/0xff, float64(c.B)/0xff, 0)
+						cm.Scale(0, 0, 0, float64(c.A)/0xff)
+						cm.Translate(float64(c.R)/0xff, float64(c.G)/0xff, float64(c.B)/0xff, 0)
 					}
 					d(op)
 				}
@@ -113,8 +127,8 @@ func NewSpriteSheet(img *ebiten.Image, origSpriteWidth, origSpriteHeight int, op
 					op.GeoM.Translate(dx, dy+float64(zy))
 					op.GeoM.Scale(float64(options.Scale), float64(options.Scale))
 					if options.OutlineThickness > 0 {
-						op.ColorM.Scale(0, 0, 0, float64(c.A)/0xff)
-						op.ColorM.Translate(float64(c.R)/0xff, float64(c.G)/0xff, float64(c.B)/0xff, 0)
+						cm.Scale(0, 0, 0, float64(c.A)/0xff)
+						cm.Translate(float64(c.R)/0xff, float64(c.G)/0xff, float64(c.B)/0xff, 0)
 					}
 					d(op)
 				}
@@ -124,7 +138,7 @@ func NewSpriteSheet(img *ebiten.Image, origSpriteWidth, origSpriteHeight int, op
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(dx-float64(options.OutlineThickness), dy-float64(options.OutlineThickness))
 			op.GeoM.Scale(float64(options.Scale), float64(options.Scale))
-			op.CompositeMode = ebiten.CompositeModeClear
+			op.Blend = ebiten.BlendClear
 			paddedImg.DrawImage(eraser, op)
 
 			// draw outline to the outlineImg
@@ -151,9 +165,9 @@ func NewSpriteSheet(img *ebiten.Image, origSpriteWidth, origSpriteHeight int, op
 			op.GeoM.Translate(
 				dx, dy)
 			op.GeoM.Scale(float64(options.Scale), float64(options.Scale))
-			op.ColorM.Scale(0, 0, 0, 100)
-			op.ColorM.Translate(1000/0xff, 1000/0xff, 1000/0xff, 0)
-			op.CompositeMode = ebiten.CompositeModeDestinationOut
+			cm.Scale(0, 0, 0, 100)
+			cm.Translate(1, 1, 1, 0)
+			op.Blend = ebiten.BlendDestinationOut
 			outlineImg.DrawImage(img.SubImage(
 				image.Rect(
 					x*s.SpriteWidth,
@@ -188,10 +202,10 @@ func NewSpriteSheet(img *ebiten.Image, origSpriteWidth, origSpriteHeight int, op
 	}
 
 	// draw outlines with the correct color
-	op = &ebiten.DrawImageOptions{}
-	op.ColorM.Scale(0, 0, 0, float64(c.A)/0xff)
-	op.ColorM.Translate(float64(c.R)/0xff, float64(c.G)/0xff, float64(c.B)/0xff, 0)
-	paddedImg.DrawImage(outlineImg, op)
+	op = &colorm.DrawImageOptions{}
+	cm.Scale(0, 0, 0, float64(c.A)/0xff)
+	cm.Translate(float64(c.R)/0xff, float64(c.G)/0xff, float64(c.B)/0xff, 0)
+	colorm.DrawImage(paddedImg, outlineImg, cm, op)
 
 	s.PaddedImage = paddedImg
 	s.SpriteWidth += options.OutlineThickness
@@ -199,7 +213,7 @@ func NewSpriteSheet(img *ebiten.Image, origSpriteWidth, origSpriteHeight int, op
 	s.SpriteWidth *= options.Scale
 	s.SpriteHeight *= options.Scale
 
-	eraser.Dispose()
+	eraser.Deallocate()
 
 	return s
 }
