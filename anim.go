@@ -4,6 +4,7 @@ package zen
 import (
 	"image"
 	"image/color"
+	"log"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -237,15 +238,20 @@ func NewFrame(image *ebiten.Image, duration time.Duration) Frame {
 type Animation struct {
 	Frames        []Frame
 	CurrentFrame  int
+	CurrentSprite *ebiten.Image
 	LastFrameTime time.Time
 	Paused        bool
 }
 
 // NewAnimation returns a new Animation
 func NewAnimation(frames []Frame) *Animation {
+	if len(frames) == 0 {
+		log.Fatal("Frames len(0)!")
+	}
 	return &Animation{
-		Frames: frames,
-		Paused: false,
+		Frames:        frames,
+		CurrentSprite: frames[0].Image,
+		Paused:        false,
 	}
 }
 
@@ -262,7 +268,13 @@ func (a *Animation) Update() {
 		if a.CurrentFrame >= len(a.Frames) {
 			a.CurrentFrame = 0
 		}
+		a.CurrentSprite = a.Frames[a.CurrentFrame].Image
 	}
+}
+
+// GetCurrentSprite returns the current frame from the animation
+func (a *Animation) GetCurrentSprite() *ebiten.Image {
+	return a.Frames[a.CurrentFrame].Image
 }
 
 // Draw draws the animation to the surface with the provided DrawImageOptions

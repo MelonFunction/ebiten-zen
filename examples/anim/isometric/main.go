@@ -9,6 +9,7 @@ import (
 	"image/color"
 	"image/png"
 	"log"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -103,9 +104,9 @@ func main() {
 		if s, err := png.Decode(bytes.NewReader(b)); err == nil {
 			sprites := ebiten.NewImageFromImage(s)
 			SpriteSheetTiles = zen.NewSpriteSheet(sprites, 16, 16, zen.SpriteSheetOptions{
-				Scale:            2,
-				OutlineThickness: 2, // Spritestack creates a new spritesheet and reimplements this value
-				OutlineColor:     color.RGBA{255, 0, 0, 255},
+				Scale: 2,
+				// OutlineThickness: 2, // Spritestack creates a new spritesheet and reimplements this value
+				// OutlineColor:     color.RGBA{255, 0, 0, 255},
 			})
 		}
 	} else {
@@ -116,9 +117,9 @@ func main() {
 		if s, err := png.Decode(bytes.NewReader(b)); err == nil {
 			sprites := ebiten.NewImageFromImage(s)
 			SpriteSheetCar = zen.NewSpriteSheet(sprites, 15, 32, zen.SpriteSheetOptions{
-				Scale:            2,
-				OutlineThickness: 2, // Spritestack creates a new spritesheet and reimplements this value
-				OutlineColor:     color.RGBA{0, 255, 0, 255},
+				Scale: 2,
+				// OutlineThickness: 2, // Spritestack creates a new spritesheet and reimplements this value
+				// OutlineColor:     color.RGBA{0, 255, 0, 255},
 			})
 		}
 	} else {
@@ -131,11 +132,17 @@ func main() {
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
 	camera = zen.NewCamera(WindowWidth, WindowHeight, 0, 0, 0, 1)
+
+	// outlines on IsometricDrawables are dynamic!
+	// you can't use a spritesheet with an outline as it
+	// breaks how the stack is rendered! (but this is )
 	floor = zen.NewFloor(
 		SpriteSheetTiles.GetSprite(4, 0),
 		0,
 		zen.NewVector(-float64(SpriteSheetTiles.SpriteWidth)*4, 0),
 		zen.NewVector(float64(SpriteSheetTiles.SpriteWidth)/2, float64(SpriteSheetTiles.SpriteWidth)/2))
+	floor.OutlineColor = color.RGBA{0, 255, 0, 255}
+	floor.OutlineThickness = 2
 
 	wall = zen.NewWall(
 		SpriteSheetTiles.GetSprite(0, 0),
@@ -150,16 +157,22 @@ func main() {
 		zen.NewVector(-float64(SpriteSheetTiles.SpriteWidth)*3, 0),
 		zen.NewVector(float64(SpriteSheetTiles.SpriteWidth)/2, float64(SpriteSheetTiles.SpriteWidth)/2),
 	)
+	wall.OutlineColor = color.RGBA{255, 0, 0, 255}
+	wall.OutlineThickness = 2
 
 	spriteStack = zen.NewSpriteStack(
 		SpriteSheetCar,
-		0,
-		zen.NewVector(0, 0),
+		math.Pi/4,
+		zen.NewVector(float64(SpriteSheetTiles.SpriteWidth)*5, 0),
 		zen.NewVector(float64(SpriteSheetCar.SpriteWidth)/2, float64(SpriteSheetCar.SpriteWidth)/2))
+	spriteStack.OutlineColor = color.RGBA{0, 255, 0, 255}
+	spriteStack.OutlineThickness = 2
 
 	billboard = zen.NewBillboard(
 		SpriteSheetTiles.GetSprite(5, 0),
 		zen.NewVector(float64(SpriteSheetTiles.SpriteWidth)*2, 0))
+	billboard.OutlineColor = color.RGBA{255, 0, 255, 255}
+	billboard.OutlineThickness = 2
 
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
