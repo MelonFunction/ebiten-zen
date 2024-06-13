@@ -11,7 +11,7 @@ import (
 type Camera struct {
 	ScreenRotation float64
 	Scale          float64
-	Position       *Vector
+	Position       *Vector2
 	Width, Height  int
 	Surface        *ebiten.Image
 
@@ -21,7 +21,7 @@ type Camera struct {
 // NewCamera returns a new Camera
 func NewCamera(width, height int, x, y, rotation, zoom float64) *Camera {
 	return &Camera{
-		Position:       NewVector(x, y),
+		Position:       NewVector2(x, y),
 		Width:          width,
 		Height:         height,
 		ScreenRotation: rotation,
@@ -53,7 +53,7 @@ func (c *Camera) MovePosition(x, y float64) *Camera {
 }
 
 // GetPosition returns the Camera's Position Vector
-func (c *Camera) GetPosition() *Vector {
+func (c *Camera) GetPosition() *Vector2 {
 	return c.Position
 }
 

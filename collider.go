@@ -13,7 +13,7 @@ var (
 
 // Shape interface. It's probably not needed but it keeps code more readable.
 type Shape interface {
-	GetPosition() *Vector // get the position
+	GetPosition() *Vector2 // get the position
 	GetBounds() (float64, float64, float64, float64)
 	Move(x, y float64)      // move by amount
 	MoveTo(x, y float64)    // move to position
@@ -27,7 +27,7 @@ type Shape interface {
 // CircleShape shape
 type CircleShape struct {
 	// Center point
-	Pos         *Vector
+	Pos         *Vector2
 	Radius      float64
 	SpatialHash *SpatialHash
 	Parent      interface{}
@@ -36,7 +36,7 @@ type CircleShape struct {
 // RectangleShape shape
 type RectangleShape struct {
 	// Center point
-	Pos           *Vector
+	Pos           *Vector2
 	Width, Height float64
 	SpatialHash   *SpatialHash
 	Parent        interface{}
@@ -142,17 +142,17 @@ func (s *SpatialHash) GetCollisionCandidates(shape Shape) []Shape {
 // CollisionData contains information about the collision
 type CollisionData struct {
 	Other            Shape
-	SeparatingVector *Vector
+	SeparatingVector *Vector2
 }
 
-func collisionRectRect(r1, r2 *RectangleShape) *Vector {
+func collisionRectRect(r1, r2 *RectangleShape) *Vector2 {
 	r1Left, r1Up, r1Right, r1Down := r1.GetBounds()
 	r2Left, r2Up, r2Right, r2Down := r2.GetBounds()
 
 	if !(((r1Right >= r2Left && r1Right <= r2Right) || (r1Left >= r2Left && r1Left <= r2Right) || (r1Left >= r2Left && r1Right <= r2Right) || (r2Left >= r1Left && r2Right <= r1Right)) &&
 		((r1Up <= r2Down && r1Up >= r2Up) || (r1Down <= r2Down && r1Down >= r2Up) || (r1Up >= r2Up && r1Down <= r2Down) || (r2Up >= r1Up && r2Down <= r1Down))) {
 
-		return &Vector{0, 0}
+		return &Vector2{0, 0}
 	}
 
 	var dx, dy float64
@@ -172,10 +172,10 @@ func collisionRectRect(r1, r2 *RectangleShape) *Vector {
 	} else {
 		dx = 0
 	}
-	return &Vector{dx, dy}
+	return &Vector2{dx, dy}
 }
 
-func collisionRectCirc(r1 *RectangleShape, c1 *CircleShape) *Vector {
+func collisionRectCirc(r1 *RectangleShape, c1 *CircleShape) *Vector2 {
 	// Check bbox of circle
 	rr := collisionRectRect(
 		r1,
@@ -190,30 +190,30 @@ func collisionRectCirc(r1 *RectangleShape, c1 *CircleShape) *Vector {
 
 	// Get nearest corner, return if midpoint of c1 is inside rect
 	left, up, right, down := r1.GetBounds()
-	var co *Vector
+	var co *Vector2
 	if r1.Pos.X > c1.Pos.X { // left
 		if r1.Pos.Y > c1.Pos.Y { // top
 			if c1.Pos.X > left || c1.Pos.Y > up {
 				return rr
 			}
-			co = NewVector(left, up)
+			co = NewVector2(left, up)
 		} else { // bottom
 			if c1.Pos.X > left || c1.Pos.Y < down {
 				return rr
 			}
-			co = NewVector(left, down)
+			co = NewVector2(left, down)
 		}
 	} else { // right
 		if r1.Pos.Y > c1.Pos.Y { // top
 			if c1.Pos.X < right || c1.Pos.Y > up {
 				return rr
 			}
-			co = NewVector(right, up)
+			co = NewVector2(right, up)
 		} else { // bottom
 			if c1.Pos.X < right || c1.Pos.Y < down {
 				return rr
 			}
-			co = NewVector(right, down)
+			co = NewVector2(right, down)
 		}
 	}
 
@@ -228,11 +228,11 @@ func collisionRectCirc(r1 *RectangleShape, c1 *CircleShape) *Vector {
 
 }
 
-func collisionCircCirc(c1, c2 *CircleShape) *Vector {
+func collisionCircCirc(c1, c2 *CircleShape) *Vector2 {
 	dist := c1.Pos.Sub(c2.Pos)
 	depth := c1.Radius + c2.Radius - dist.Length()
 	if depth < 0 {
-		return &Vector{0, 0}
+		return &Vector2{0, 0}
 	}
 
 	return dist.Normalize().Mult(depth)
@@ -247,7 +247,7 @@ func (s *SpatialHash) CheckCollisions(shape Shape) []CollisionData {
 	case *RectangleShape:
 
 		for _, candidate := range candidates {
-			var col *Vector
+			var col *Vector2
 			switch other := candidate.(type) {
 			case *RectangleShape:
 				col = collisionRectRect(typed, other)
@@ -262,7 +262,7 @@ func (s *SpatialHash) CheckCollisions(shape Shape) []CollisionData {
 		}
 	case *CircleShape:
 		for _, candidate := range candidates {
-			var col *Vector
+			var col *Vector2
 			switch other := candidate.(type) {
 			case *RectangleShape:
 				col = collisionRectCirc(other, typed).Mult(-1)
@@ -285,7 +285,7 @@ func (s *SpatialHash) CheckCollisions(shape Shape) []CollisionData {
 // NewCircleShape creates, then adds a new CircleShape to the hash before returning it
 func (s *SpatialHash) NewCircleShape(x, y, r float64) *CircleShape {
 	ci := &CircleShape{
-		Pos:    &Vector{x, y},
+		Pos:    &Vector2{x, y},
 		Radius: r,
 	}
 	s.Add(ci)
@@ -293,7 +293,7 @@ func (s *SpatialHash) NewCircleShape(x, y, r float64) *CircleShape {
 }
 
 // GetPosition returns the Point of the CircleShape
-func (ci *CircleShape) GetPosition() *Vector {
+func (ci *CircleShape) GetPosition() *Vector2 {
 	return ci.Pos
 }
 
@@ -346,7 +346,7 @@ func (ci *CircleShape) GetParent() interface{} {
 // NewRectangleShape creates, then adds a new RectangleShape to the hash before returning it
 func (s *SpatialHash) NewRectangleShape(x, y, w, h float64) *RectangleShape {
 	re := &RectangleShape{
-		Pos:    &Vector{x, y},
+		Pos:    &Vector2{x, y},
 		Width:  w,
 		Height: h,
 	}
@@ -355,7 +355,7 @@ func (s *SpatialHash) NewRectangleShape(x, y, w, h float64) *RectangleShape {
 }
 
 // GetPosition returns the Point of the RectangleShape
-func (re *RectangleShape) GetPosition() *Vector {
+func (re *RectangleShape) GetPosition() *Vector2 {
 	return re.Pos
 }
 

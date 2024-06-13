@@ -32,12 +32,12 @@ type IsometricDrawable interface {
 
 // Billboard represents a sprite that always faces the camera
 type Billboard struct {
-	Position *Vector
+	Position *Vector2
 
-	RotatedPos *Vector
+	RotatedPos *Vector2
 
 	outlineShader    *ebiten.Shader
-	OutlineThickness int // stolen from spritestack, added in later as shader
+	OutlineThickness int
 	OutlineColor     color.RGBA
 	internalImage    *ebiten.Image
 
@@ -46,15 +46,15 @@ type Billboard struct {
 
 // SpriteStack represents a stack of sprites (or basically floor tiles)
 type SpriteStack struct {
-	Position *Vector
+	Position *Vector2
 	Height   float64 // height of the top face of the tile
 
 	Rotation      float64 // individual rotation
-	RotationPoint *Vector
-	RotatedPos    *Vector
+	RotationPoint *Vector2
+	RotatedPos    *Vector2
 
 	outlineShader    *ebiten.Shader
-	OutlineThickness int // stolen from spritestack, added in later as shader
+	OutlineThickness int
 	OutlineColor     color.RGBA
 	internalImage    *ebiten.Image
 	SpriteSheet      *SpriteSheet // used internally, but public just in case
@@ -63,14 +63,14 @@ type SpriteStack struct {
 
 // Floor represents a floor tile in the world
 type Floor struct {
-	Position *Vector
+	Position *Vector2
 
 	Rotation      float64 // individual rotation
-	RotationPoint *Vector
-	RotatedPos    *Vector
+	RotationPoint *Vector2
+	RotatedPos    *Vector2
 
 	outlineShader    *ebiten.Shader
-	OutlineThickness int // stolen from spritestack, added in later as shader
+	OutlineThickness int
 	OutlineColor     color.RGBA
 	internalImage    *ebiten.Image
 
@@ -79,15 +79,15 @@ type Floor struct {
 
 // Wall represents a wall tile in the world
 type Wall struct {
-	Position *Vector
+	Position *Vector2
 	Height   float64 // height of the top face of the tile
 
 	Rotation      float64 // individual rotation
-	RotationPoint *Vector
-	RotatedPos    *Vector
+	RotationPoint *Vector2
+	RotatedPos    *Vector2
 
 	outlineShader    *ebiten.Shader
-	OutlineThickness int // stolen from spritestack, added in later as shader
+	OutlineThickness int
 	OutlineColor     color.RGBA
 	internalImage    *ebiten.Image
 
@@ -96,7 +96,7 @@ type Wall struct {
 }
 
 // NewBillboard returns a *Billboard
-func NewBillboard(sprite *ebiten.Image, position *Vector) *Billboard {
+func NewBillboard(sprite *ebiten.Image, position *Vector2) *Billboard {
 	size := math.Max(float64(sprite.Bounds().Dx()), float64(sprite.Bounds().Dy()))
 
 	loadOutlineShader()
@@ -104,7 +104,7 @@ func NewBillboard(sprite *ebiten.Image, position *Vector) *Billboard {
 	s := &Billboard{
 		Sprite:     sprite,
 		Position:   position,
-		RotatedPos: NewVector(0, 0),
+		RotatedPos: NewVector2(0, 0),
 
 		internalImage:    ebiten.NewImage(int(size)*2, int(size)*2),
 		outlineShader:    outlineShader,
@@ -148,7 +148,7 @@ func (s *Billboard) Draw(camera *Camera) {
 }
 
 // NewSpriteStack returns a *SpriteStack
-func NewSpriteStack(spriteSheet *SpriteSheet, rotation float64, position, rotationPoint *Vector) *SpriteStack {
+func NewSpriteStack(spriteSheet *SpriteSheet, rotation float64, position, rotationPoint *Vector2) *SpriteStack {
 	size := math.Max(float64(spriteSheet.SpriteWidth), float64(spriteSheet.SpriteHeight))
 
 	loadOutlineShader()
@@ -158,7 +158,7 @@ func NewSpriteStack(spriteSheet *SpriteSheet, rotation float64, position, rotati
 		Rotation:      rotation,
 		Position:      position,
 		RotationPoint: rotationPoint,
-		RotatedPos:    NewVector(0, 0),
+		RotatedPos:    NewVector2(0, 0),
 
 		internalImage:    ebiten.NewImage(int(size)*2, int(size)*2),
 		outlineShader:    outlineShader,
@@ -209,7 +209,7 @@ func (s *SpriteStack) Draw(camera *Camera) {
 }
 
 // NewFloor returns a *Floor
-func NewFloor(sprite *ebiten.Image, rotation float64, position, rotationPoint *Vector) *Floor {
+func NewFloor(sprite *ebiten.Image, rotation float64, position, rotationPoint *Vector2) *Floor {
 	size := math.Max(float64(sprite.Bounds().Dx()), float64(sprite.Bounds().Dy()))
 
 	loadOutlineShader()
@@ -219,7 +219,7 @@ func NewFloor(sprite *ebiten.Image, rotation float64, position, rotationPoint *V
 		Rotation:      rotation,
 		Position:      position,
 		RotationPoint: rotationPoint,
-		RotatedPos:    NewVector(0, 0),
+		RotatedPos:    NewVector2(0, 0),
 
 		internalImage:    ebiten.NewImage(int(size)*2, int(size)*2),
 		outlineShader:    outlineShader,
@@ -264,7 +264,7 @@ func (f *Floor) Draw(camera *Camera) {
 }
 
 // NewWall returns a *Wall
-func NewWall(topSprite *ebiten.Image, wallSprites []*ebiten.Image, height, rotation float64, position, rotationPoint *Vector) *Wall {
+func NewWall(topSprite *ebiten.Image, wallSprites []*ebiten.Image, height, rotation float64, position, rotationPoint *Vector2) *Wall {
 	size := math.Max(float64(topSprite.Bounds().Dx()), float64(topSprite.Bounds().Dy()))
 
 	loadOutlineShader()
@@ -276,7 +276,7 @@ func NewWall(topSprite *ebiten.Image, wallSprites []*ebiten.Image, height, rotat
 		Rotation:      rotation,
 		Position:      position,
 		RotationPoint: rotationPoint,
-		RotatedPos:    NewVector(0, 0),
+		RotatedPos:    NewVector2(0, 0),
 
 		internalImage:    ebiten.NewImage(int(size)*2+int(height)*2, int(size)*2+int(height)*2),
 		outlineShader:    outlineShader,
@@ -302,13 +302,13 @@ func (t *Wall) Draw(camera *Camera) {
 	tx, ty := float64(t.internalImage.Bounds().Dx())/2,
 		float64(t.internalImage.Bounds().Dy())/2
 
-	tr := NewVector(t.RotatedPos.X+w/2, t.RotatedPos.Y-d/2).RotateAround(t.Rotation, t.RotationPoint).RotateAround(camera.WorldRotation, t.RotatedPos)
-	bl := NewVector(t.RotatedPos.X-w/2, t.RotatedPos.Y+d/2).RotateAround(t.Rotation, t.RotationPoint).RotateAround(camera.WorldRotation, t.RotatedPos)
-	br := NewVector(t.RotatedPos.X+w/2, t.RotatedPos.Y+d/2).RotateAround(t.Rotation, t.RotationPoint).RotateAround(camera.WorldRotation, t.RotatedPos)
-	tl := NewVector(t.RotatedPos.X-w/2, t.RotatedPos.Y-d/2).RotateAround(t.Rotation, t.RotationPoint).RotateAround(camera.WorldRotation, t.RotatedPos)
+	tr := NewVector2(t.RotatedPos.X+w/2, t.RotatedPos.Y-d/2).RotateAround(t.Rotation, t.RotationPoint).RotateAround(camera.WorldRotation, t.RotatedPos)
+	bl := NewVector2(t.RotatedPos.X-w/2, t.RotatedPos.Y+d/2).RotateAround(t.Rotation, t.RotationPoint).RotateAround(camera.WorldRotation, t.RotatedPos)
+	br := NewVector2(t.RotatedPos.X+w/2, t.RotatedPos.Y+d/2).RotateAround(t.Rotation, t.RotationPoint).RotateAround(camera.WorldRotation, t.RotatedPos)
+	tl := NewVector2(t.RotatedPos.X-w/2, t.RotatedPos.Y-d/2).RotateAround(t.Rotation, t.RotationPoint).RotateAround(camera.WorldRotation, t.RotatedPos)
 
 	// draw faces clockwise to prevent image flipping
-	drawFace := func(p1, p2 *Vector, img *ebiten.Image) {
+	drawFace := func(p1, p2 *Vector2, img *ebiten.Image) {
 		op = &ebiten.DrawImageOptions{}
 		op.ColorScale.Scale(1, 1, 1, 1)
 		op = camera.GetScale(op, (p2.X-p1.X)/(float64(t.TopSprite.Bounds().Dx())), 1)

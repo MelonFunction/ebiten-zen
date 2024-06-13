@@ -139,8 +139,8 @@ func main() {
 	floor = zen.NewFloor(
 		SpriteSheetTiles.GetSprite(4, 0),
 		0,
-		zen.NewVector(-float64(SpriteSheetTiles.SpriteWidth)*4, 0),
-		zen.NewVector(float64(SpriteSheetTiles.SpriteWidth)/2, float64(SpriteSheetTiles.SpriteWidth)/2))
+		zen.NewVector2(-float64(SpriteSheetTiles.SpriteWidth)*4, 0),
+		zen.NewVector2(float64(SpriteSheetTiles.SpriteWidth)/2, float64(SpriteSheetTiles.SpriteWidth)/2))
 	floor.OutlineColor = color.RGBA{0, 255, 0, 255}
 	floor.OutlineThickness = 2
 
@@ -154,8 +154,8 @@ func main() {
 		},
 		float64(SpriteSheetTiles.SpriteWidth),
 		0,
-		zen.NewVector(-float64(SpriteSheetTiles.SpriteWidth)*3, 0),
-		zen.NewVector(float64(SpriteSheetTiles.SpriteWidth)/2, float64(SpriteSheetTiles.SpriteWidth)/2),
+		zen.NewVector2(-float64(SpriteSheetTiles.SpriteWidth)*3, 0),
+		zen.NewVector2(float64(SpriteSheetTiles.SpriteWidth)/2, float64(SpriteSheetTiles.SpriteWidth)/2),
 	)
 	wall.OutlineColor = color.RGBA{255, 0, 0, 255}
 	wall.OutlineThickness = 2
@@ -163,14 +163,14 @@ func main() {
 	spriteStack = zen.NewSpriteStack(
 		SpriteSheetCar,
 		math.Pi/4,
-		zen.NewVector(float64(SpriteSheetTiles.SpriteWidth)*5, 0),
-		zen.NewVector(float64(SpriteSheetCar.SpriteWidth)/2, float64(SpriteSheetCar.SpriteWidth)/2))
+		zen.NewVector2(float64(SpriteSheetTiles.SpriteWidth)*5, 0),
+		zen.NewVector2(float64(SpriteSheetCar.SpriteWidth)/2, float64(SpriteSheetCar.SpriteWidth)/2))
 	spriteStack.OutlineColor = color.RGBA{0, 255, 0, 255}
 	spriteStack.OutlineThickness = 2
 
 	billboard = zen.NewBillboard(
 		SpriteSheetTiles.GetSprite(5, 0),
-		zen.NewVector(float64(SpriteSheetTiles.SpriteWidth)*2, 0))
+		zen.NewVector2(float64(SpriteSheetTiles.SpriteWidth)*2, 0))
 	billboard.OutlineColor = color.RGBA{255, 0, 255, 255}
 	billboard.OutlineThickness = 2
 

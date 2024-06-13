@@ -87,7 +87,7 @@ func main() {
 	game := &Game{}
 	ebiten.SetWindowSize(WindowWidth, WindowHeight)
 	ebiten.SetWindowTitle("Animation example")
-	ebiten.SetWindowResizable(true)
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
 	if b, err := embedded.ReadFile("sprites.png"); err == nil {
 		if s, err := png.Decode(bytes.NewReader(b)); err == nil {
