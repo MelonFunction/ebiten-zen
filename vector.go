@@ -77,3 +77,8 @@ func (v *Vector2) RotateAround(phi float64, o *Vector2) *Vector2 {
 func (v *Vector2) AngleTo(other *Vector2) float64 {
 	return math.Atan2(v.Y-other.Y, v.X-other.X)
 }
+
+// Unpack returns the Vector2's components
+func (v *Vector2) Unpack() (float64, float64) {
+	return v.X, v.Y
+}
