@@ -10,9 +10,11 @@ import (
 	"image/png"
 	"log"
 	"math"
+	"math/rand/v2"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 	zen "github.com/melonfunction/ebiten-zen"
 )
 
@@ -28,6 +30,7 @@ var (
 	wall        *zen.Wall
 	spriteStack *zen.SpriteStack
 	billboard   *zen.Billboard
+	stress      []zen.IsometricDrawable
 
 	WindowWidth      = 640 * 2
 	WindowHeight     = 480 * 2
@@ -48,11 +51,11 @@ func (g *Game) Update() error {
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyG) {
 		camera.RotateWorld(-0.025)
-		spriteStack.Rotation -= 0.025
+		// spriteStack.Rotation -= 0.025
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyR) {
 		camera.RotateWorld(0.025)
-		spriteStack.Rotation += 0.025
+		// spriteStack.Rotation += 0.025
 	}
 
 	// camera movement isn't adjusted by camera rotation here
@@ -76,17 +79,22 @@ func (g *Game) Update() error {
 // Draw is called every frame (typically 1/60[s] for 60Hz display).
 func (g *Game) Draw(screen *ebiten.Image) {
 	camera.Surface.Clear()
-	// floor.Rotation += 0.01
-	// wall.Rotation += 0.01
 	floor.Draw(camera)
 	wall.Draw(camera)
 	spriteStack.Draw(camera)
 	billboard.Draw(camera)
 
-	// camera.Surface.DrawImage(SpriteSheet.GetSprite(3, 0), camera.GetTranslation(&ebiten.DrawImageOptions{}, 0, 0))
+	for i := 0; i < len(stress); i++ {
+		stress[i].Draw(camera)
+	}
+
+	ebiten.ActualTPS()
+	ebitenutil.DebugPrintAt(camera.Surface, fmt.Sprintf("%f, %f", ebiten.ActualFPS(), ebiten.ActualTPS()), 0, 0)
+
 	mx, my := ebiten.CursorPosition()
 	wx, wy := camera.GetWorldCoords(float64(mx), float64(my))
 	ebitenutil.DebugPrintAt(camera.Surface, fmt.Sprintf("%d, %d", int(wx), int(wy)), mx, my-16)
+	vector.DrawFilledCircle(camera.Surface, float32(camera.Surface.Bounds().Dx())/2, float32(camera.Surface.Bounds().Dy())/2, 4, color.RGBA{255, 255, 255, 255}, false)
 	camera.Blit(screen)
 }
 
@@ -105,8 +113,6 @@ func main() {
 			sprites := ebiten.NewImageFromImage(s)
 			SpriteSheetTiles = zen.NewSpriteSheet(sprites, 16, 16, zen.SpriteSheetOptions{
 				Scale: 2,
-				// OutlineThickness: 2, // Spritestack creates a new spritesheet and reimplements this value
-				// OutlineColor:     color.RGBA{255, 0, 0, 255},
 			})
 		}
 	} else {
@@ -118,8 +124,6 @@ func main() {
 			sprites := ebiten.NewImageFromImage(s)
 			SpriteSheetCar = zen.NewSpriteSheet(sprites, 15, 32, zen.SpriteSheetOptions{
 				Scale: 2,
-				// OutlineThickness: 2, // Spritestack creates a new spritesheet and reimplements this value
-				// OutlineColor:     color.RGBA{0, 255, 0, 255},
 			})
 		}
 	} else {
@@ -133,14 +137,17 @@ func main() {
 
 	camera = zen.NewCamera(WindowWidth, WindowHeight, 0, 0, 0, 1)
 
-	// outlines on IsometricDrawables are dynamic!
-	// you can't use a spritesheet with an outline as it
-	// breaks how the stack is rendered! (but this is )
+	// Outlines on IsometricDrawables are dynamic!
+	// You can't use a spritesheet with an outline as it breaks how the stack is rendered!
+	// You would use a spritesheet outline if you're not using IsometricDrawables
 	floor = zen.NewFloor(
 		SpriteSheetTiles.GetSprite(4, 0),
 		0,
+		// zen.NewVector2(0, 0),
 		zen.NewVector2(-float64(SpriteSheetTiles.SpriteWidth)*4, 0),
-		zen.NewVector2(float64(SpriteSheetTiles.SpriteWidth)/2, float64(SpriteSheetTiles.SpriteWidth)/2))
+		// zen.NewVector2(0, 0),
+		zen.NewVector2(float64(SpriteSheetTiles.SpriteWidth)/2, float64(SpriteSheetTiles.SpriteHeight)/2),
+	)
 	floor.OutlineColor = color.RGBA{0, 255, 0, 255}
 	floor.OutlineThickness = 2
 
@@ -154,25 +161,54 @@ func main() {
 		},
 		float64(SpriteSheetTiles.SpriteWidth),
 		0,
-		zen.NewVector2(-float64(SpriteSheetTiles.SpriteWidth)*3, 0),
-		zen.NewVector2(float64(SpriteSheetTiles.SpriteWidth)/2, float64(SpriteSheetTiles.SpriteWidth)/2),
+		zen.NewVector2(0, 0),
+		// zen.NewVector2(0, 0),
+		// zen.NewVector2(-float64(SpriteSheetTiles.SpriteWidth)*5, 0),
+		zen.NewVector2(float64(SpriteSheetTiles.SpriteWidth)/2, float64(SpriteSheetTiles.SpriteHeight)/2),
 	)
 	wall.OutlineColor = color.RGBA{255, 0, 0, 255}
 	wall.OutlineThickness = 2
 
 	spriteStack = zen.NewSpriteStack(
 		SpriteSheetCar,
-		math.Pi/4,
+		0,
 		zen.NewVector2(float64(SpriteSheetTiles.SpriteWidth)*5, 0),
-		zen.NewVector2(float64(SpriteSheetCar.SpriteWidth)/2, float64(SpriteSheetCar.SpriteWidth)/2))
+		zen.NewVector2(float64(SpriteSheetCar.SpriteWidth)/2, float64(SpriteSheetCar.SpriteHeight)/2),
+	)
 	spriteStack.OutlineColor = color.RGBA{0, 255, 0, 255}
 	spriteStack.OutlineThickness = 2
 
 	billboard = zen.NewBillboard(
 		SpriteSheetTiles.GetSprite(5, 0),
-		zen.NewVector2(float64(SpriteSheetTiles.SpriteWidth)*2, 0))
-	billboard.OutlineColor = color.RGBA{255, 0, 255, 255}
+		// zen.NewVector2(0, 0),
+		zen.NewVector2(float64(SpriteSheetTiles.SpriteWidth)*2, 0),
+		// zen.NewVector2(0, 0),
+		zen.NewVector2(float64(SpriteSheetTiles.SpriteWidth)/2, float64(SpriteSheetTiles.SpriteHeight)), // bottom of the sprite
+	)
 	billboard.OutlineThickness = 2
+	billboard.OutlineColor = color.RGBA{0, 255, 0, 255}
+
+	stress = make([]zen.IsometricDrawable, 0)
+	for i := 0; i < 0; i++ { // TODO memory leak at 2000, but only when drawing outlines
+		x, y := float64(rand.IntN(30)-15), float64(rand.IntN(30)-15)
+
+		w := zen.NewWall(
+			SpriteSheetTiles.GetSprite(0, 0),
+			[]*ebiten.Image{
+				SpriteSheetTiles.GetSprite(2, 0),
+				SpriteSheetTiles.GetSprite(1, 0),
+				SpriteSheetTiles.GetSprite(1, 0),
+				SpriteSheetTiles.GetSprite(1, 0),
+			},
+			float64(SpriteSheetTiles.SpriteWidth),
+			math.Pi/4*rand.Float64(),
+			zen.NewVector2(float64(SpriteSheetTiles.SpriteWidth)*x, float64(SpriteSheetTiles.SpriteHeight)*y),
+			zen.NewVector2(float64(SpriteSheetTiles.SpriteWidth)/2, float64(SpriteSheetTiles.SpriteHeight)/2),
+		)
+		// w.OutlineColor = color.RGBA{255, 255, 0, 255}
+		// w.OutlineThickness = 2
+		stress = append(stress, w)
+	}
 
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
