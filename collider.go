@@ -6,19 +6,16 @@ import (
 	"math"
 )
 
-// Vars
-var (
-	ErrShapeNotFound = errors.New("Couldn't remove shape from SpatialHash; not found")
-)
+var ErrShapeNotFound = errors.New("Couldn't remove shape from SpatialHash; not found")
 
-// Shape interface. It's probably not needed but it keeps code more readable.
+// Shape interface describes an object that can be added to the hash
 type Shape interface {
 	GetPosition() *Vector2 // get the position
 	GetBounds() (float64, float64, float64, float64)
-	Move(x, y float64)      // move by amount
-	MoveTo(x, y float64)    // move to position
-	SetHash(s *SpatialHash) // sets ref to hash
-	GetHash() *SpatialHash  // gets	 ref to hash
+	MovePosition(x, y float64) // move by amount
+	SetPosition(x, y float64)  // move to position
+	SetHash(s *SpatialHash)    // sets ref to hash
+	GetHash() *SpatialHash     // gets	 ref to hash
 
 	SetParent(i interface{})
 	GetParent() interface{}
@@ -74,6 +71,17 @@ func NewSpatialHash(cellSize int) *SpatialHash {
 	}
 }
 
+// GetXYWH converts bounds coords into X,Y,W,H
+// Also returns float32s for use with ebiten's vector.DrawFilledRect since that's
+// the most likely use for this function.
+// You can also just type cast the interface to RectangleShape (if it is one) to
+// get access to Pos, Width and Height
+func (s *SpatialHash) GetXYWH(shape Shape) (float32, float32, float32, float32) {
+	x1, y1, x2, y2 := shape.GetBounds()
+	w, h := x2-x1, y2-y1
+	return float32(x1), float32(y1), float32(w), float32(h)
+}
+
 // Add adds a shape to the spatial hash
 func (s *SpatialHash) Add(shape Shape) {
 	x1, y1, x2, y2 := shape.GetBounds()
@@ -105,7 +113,6 @@ func (s *SpatialHash) Add(shape Shape) {
 		}
 	}
 done:
-
 	shape.SetHash(s)
 }
 
@@ -149,6 +156,7 @@ func collisionRectRect(r1, r2 *RectangleShape) *Vector2 {
 	r1Left, r1Up, r1Right, r1Down := r1.GetBounds()
 	r2Left, r2Up, r2Right, r2Down := r2.GetBounds()
 
+	// TODO is this ok?
 	if !(((r1Right >= r2Left && r1Right <= r2Right) || (r1Left >= r2Left && r1Left <= r2Right) || (r1Left >= r2Left && r1Right <= r2Right) || (r2Left >= r1Left && r2Right <= r1Right)) &&
 		((r1Up <= r2Down && r1Up >= r2Up) || (r1Down <= r2Down && r1Down >= r2Up) || (r1Up >= r2Up && r1Down <= r2Down) || (r2Up >= r1Up && r2Down <= r1Down))) {
 
@@ -305,8 +313,8 @@ func (ci *CircleShape) GetBounds() (float64, float64, float64, float64) {
 		ci.Pos.Y + ci.Radius
 }
 
-// Move moves the CircleShape by x and y
-func (ci *CircleShape) Move(x, y float64) {
+// MovePosition moves the CircleShape by x and y
+func (ci *CircleShape) MovePosition(x, y float64) {
 	ci.Pos.X += x
 	ci.Pos.Y += y
 	hash := ci.GetHash()
@@ -314,8 +322,8 @@ func (ci *CircleShape) Move(x, y float64) {
 	hash.Add(ci)
 }
 
-// MoveTo moves the CircleShape to x and y
-func (ci *CircleShape) MoveTo(x, y float64) {
+// SetPosition moves the CircleShape to x and y
+func (ci *CircleShape) SetPosition(x, y float64) {
 	ci.Pos.X = x
 	ci.Pos.Y = y
 	hash := ci.GetHash()
@@ -367,8 +375,8 @@ func (re *RectangleShape) GetBounds() (float64, float64, float64, float64) {
 		re.Pos.Y + re.Height/2
 }
 
-// Move moves the RectangleShape by x and y
-func (re *RectangleShape) Move(x, y float64) {
+// MovePosition moves the RectangleShape by x and y
+func (re *RectangleShape) MovePosition(x, y float64) {
 	re.Pos.X += x
 	re.Pos.Y += y
 	hash := re.GetHash()
@@ -376,8 +384,8 @@ func (re *RectangleShape) Move(x, y float64) {
 	hash.Add(re)
 }
 
-// MoveTo moves the RectangleShape to x and y
-func (re *RectangleShape) MoveTo(x, y float64) {
+// SetPosition moves the RectangleShape to x and y
+func (re *RectangleShape) SetPosition(x, y float64) {
 	re.Pos.X = x
 	re.Pos.Y = y
 	hash := re.GetHash()
