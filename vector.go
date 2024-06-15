@@ -3,6 +3,10 @@ package zen
 
 import "math"
 
+// TODO
+// - vector_test.go
+// - {name}InPlace() to prevent creating a new Vector2 every time a function is called
+
 // Vector2 represents a point in space
 type Vector2 struct {
 	X, Y float64
@@ -13,6 +17,14 @@ func NewVector2(x, y float64) *Vector2 {
 	return &Vector2{x, y}
 }
 
+// Clone returns a copy of the vector
+func (v *Vector2) Clone() *Vector2 {
+	return &Vector2{
+		v.X,
+		v.Y,
+	}
+}
+
 // Mult multiplies v by scalar and returns a new Vector2 for chaining
 func (v *Vector2) Mult(scalar float64) *Vector2 {
 	return &Vector2{
@@ -21,7 +33,7 @@ func (v *Vector2) Mult(scalar float64) *Vector2 {
 	}
 }
 
-// Add adds o to v and returns a new Vector2
+// Add adds the values of o and v together and returns a new Vector2
 func (v *Vector2) Add(o *Vector2) *Vector2 {
 	return &Vector2{
 		v.X + o.X,
@@ -37,7 +49,7 @@ func (v *Vector2) Sub(o *Vector2) *Vector2 {
 	}
 }
 
-// Length returns the length of the vector
+// Length returns the length of the Vector2
 func (v *Vector2) Length() float64 {
 	return math.Sqrt(v.X*v.X + v.Y*v.Y)
 }
