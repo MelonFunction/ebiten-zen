@@ -18,7 +18,7 @@ import (
 var (
 	camera   *zen.Camera
 	collider *zen.SpatialHash
-	player   *zen.CircleShape
+	player   zen.Shape
 
 	playerDirection float64
 
@@ -63,12 +63,12 @@ func (g *Game) Update() error {
 	player.MovePosition(dir.X, dir.Y)
 
 	collisions := collider.CheckCollisions(player)
-	for _, collision := range collisions {
-		sep := collision.SeparatingVector
-		player.MovePosition(sep.X, sep.Y)
-	}
+	// in a normal game you might want to sort through collisions and only pass
+	// certain ones into ResolveCollisions. I recommend using the shape.Get|SetParent
+	// functions to work out what type of object is being collided with.
+	collider.ResolveCollisions(player, collisions)
 
-	camera.SetPosition(player.Pos.X, player.Pos.Y)
+	camera.SetPosition(player.GetPosition().Unpack())
 
 	return nil
 }
@@ -94,15 +94,22 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	// draw the player look direction too
-	x1, y1 := camera.GetScreenCoords(player.Pos.X, player.Pos.Y)
-	r := float32(player.Radius) * 2
-	x2, y2 := zen.NewVector2(0, -1).Rotate(playerDirection).Mult(float64(r)).Add(zen.NewVector2(x1, y1)).Unpack()
+	var lookLineLength float32
+	switch p := player.(type) {
+	case *zen.CircleShape:
+		lookLineLength = float32(p.Radius) * 2
+	case *zen.RectangleShape:
+		lookLineLength = float32(p.Width)
+	}
+	x1, y1 := camera.GetScreenCoords(player.GetPosition().Unpack())
+	x2, y2 := zen.NewVector2(0, -1).Rotate(playerDirection).Mult(float64(lookLineLength)).Add(zen.NewVector2(x1, y1)).Unpack()
 	vector.StrokeLine(camera.Surface, float32(x1), float32(y1), float32(x2), float32(y2), 2, color.RGBA{128, 0, 0, 64}, true)
 
+	x, y := player.GetPosition().Unpack()
 	mx, my := ebiten.CursorPosition()
 	wx, wy := camera.GetWorldCoords(float64(mx), float64(my))
 	ebitenutil.DebugPrintAt(camera.Surface, fmt.Sprintf("%d, %d", int(wx), int(wy)), mx, my-16)
-	ebitenutil.DebugPrintAt(camera.Surface, fmt.Sprintf("%f, %f", player.Pos.X, player.Pos.Y), 0, 0)
+	ebitenutil.DebugPrintAt(camera.Surface, fmt.Sprintf("%f, %f", x, y), 0, 0)
 	camera.Blit(screen)
 }
 
@@ -126,9 +133,30 @@ func main() {
 
 	camera = zen.NewCamera(WindowWidth, WindowHeight, 0, 0, 0, 1)
 
+	// The Gauntlet
+	// the L group of squares
 	collider = zen.NewSpatialHash(100)
 	collider.NewRectangleShape(100, 100, 100, 100)
 	collider.NewRectangleShape(200, 100, 100, 100)
+	collider.NewRectangleShape(300, 200, 100, 100)
+	collider.NewRectangleShape(300, 100, 100, 100)
+	// the long horizontal rect
+	collider.NewRectangleShape(100, -100, 400, 100)
+	// the L group of circles
+	collider.NewCircleShape(100, 500, 50)
+	collider.NewCircleShape(200, 500, 50)
+	collider.NewCircleShape(300, 500, 50)
+	collider.NewCircleShape(300, 400, 50)
+	// the square surrounded by circles
+	collider.NewRectangleShape(-200, 200, 100, 100)
+	collider.NewCircleShape(-100, 200, 50)
+	collider.NewCircleShape(-300, 200, 50)
+	collider.NewCircleShape(-200, 100, 50)
+	collider.NewCircleShape(-200, 300, 50)
+
+	// RectangleShape is a bit more problematic, but CircleShape works well enough!
+	// Also, it can slide against RectangleShapes nicely :D
+	// player = collider.NewRectangleShape(100, 250, 32, 32)
 	player = collider.NewCircleShape(100, 250, 16)
 
 	if err := ebiten.RunGame(game); err != nil {

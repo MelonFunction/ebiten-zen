@@ -148,6 +148,7 @@ func (s *SpatialHash) GetCollisionCandidates(shape Shape) []Shape {
 
 // CollisionData contains information about the collision
 type CollisionData struct {
+	Target           Shape
 	Other            Shape
 	SeparatingVector *Vector2
 }
@@ -246,6 +247,73 @@ func collisionCircCirc(c1, c2 *CircleShape) *Vector2 {
 	return dist.Normalize().Mult(depth)
 }
 
+// ResolveCollisions returns the correct separating Vector2 using []CollisionData as input.
+// You can get the collisions by calling CheckCollisions, and then pass the output into
+// this function (you may also want to filter what collisions go through to this function,
+// as you may have some shapes that don't affect how the shape being passed into CheckCollisions
+// moves, for example, a shape which represents an enemy).
+// This function is a little broken, and it works best if you use a CircleShape as the target
+// with the collisions being RectangleShapes.
+func (s *SpatialHash) ResolveCollisions(target Shape, collisions []CollisionData) {
+	sep := NewVector2(0, 0)
+	switch target.(type) {
+	case *CircleShape:
+		for i, collision := range collisions {
+			// log.Println(i, collision.SeparatingVector)
+			if i == 0 {
+				sep = collision.SeparatingVector
+			} else {
+				switch collision.Other.(type) {
+				case *CircleShape:
+					sep = sep.Add(collision.SeparatingVector)
+				case *RectangleShape:
+					if collision.SeparatingVector.X == 0 || collision.SeparatingVector.Y == 0 {
+						if sep.X == 0 || sep.Y == 0 {
+							sep = sep.Add(collision.SeparatingVector)
+						} else {
+							sep = collision.SeparatingVector
+						}
+					}
+				}
+			}
+		}
+		// if len(collisions) > 0 {
+		// 	log.Println("sep", sep)
+		// 	log.Println()
+		// }
+	case *RectangleShape:
+		for i, collision := range collisions {
+			// log.Println(i, collision.SeparatingVector)
+			if i == 0 {
+				sep = collision.SeparatingVector
+			} else {
+				switch collision.Other.(type) {
+				case *CircleShape:
+					sep = sep.Add(collision.SeparatingVector)
+				case *RectangleShape:
+					// TODO fix shape getting snagged on two rects next to each other
+					if collision.SeparatingVector.X == 0 || collision.SeparatingVector.Y == 0 {
+						if math.Abs(collision.SeparatingVector.X) > math.Abs(sep.X) {
+							sep.X = collision.SeparatingVector.X
+						}
+						if math.Abs(collision.SeparatingVector.Y) > math.Abs(sep.Y) {
+							sep.Y = collision.SeparatingVector.Y
+						}
+					}
+					// if collision.SeparatingVector.Length() > sep.Length() {
+					// 	sep = collision.SeparatingVector
+					// }
+				}
+			}
+		}
+		// if len(collisions) > 0 {
+		// 	log.Println("sep", sep)
+		// 	log.Println()
+		// }
+	}
+	target.MovePosition(sep.Unpack())
+}
+
 // CheckCollisions returns a list of all shapes and their separating vector
 func (s *SpatialHash) CheckCollisions(shape Shape) []CollisionData {
 	collisions := make([]CollisionData, 0)
@@ -253,7 +321,6 @@ func (s *SpatialHash) CheckCollisions(shape Shape) []CollisionData {
 
 	switch typed := shape.(type) {
 	case *RectangleShape:
-
 		for _, candidate := range candidates {
 			var col *Vector2
 			switch other := candidate.(type) {
