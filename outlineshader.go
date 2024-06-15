@@ -27,15 +27,6 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 			max(OutlineColor*imageSrc0At(srcPos+vec2(0, o)).a,
 				OutlineColor*imageSrc0At(srcPos+vec2(0, -o)).a)))
 
-	// ret.r = max(max(OutlineColor.r*imageSrc0At(srcPos+vec2(2, -2)).a, OutlineColor.r*imageSrc0At(srcPos+vec2(2, 2)).a),
-	// 	max(OutlineColor.r*imageSrc0At(srcPos+vec2(-2, -2)).a, OutlineColor.r*imageSrc0At(srcPos+vec2(-2, 2)).a))
-	// ret.g = max(max(OutlineColor.g*imageSrc0At(srcPos+vec2(2, -2)).a, OutlineColor.g*imageSrc0At(srcPos+vec2(2, 2)).a),
-	// 	max(OutlineColor.g*imageSrc0At(srcPos+vec2(-2, -2)).a, OutlineColor.g*imageSrc0At(srcPos+vec2(-2, 2)).a))
-	// ret.b = max(max(OutlineColor.b*imageSrc0At(srcPos+vec2(2, -2)).a, OutlineColor.b*imageSrc0At(srcPos+vec2(2, 2)).a),
-	// 	max(OutlineColor.b*imageSrc0At(srcPos+vec2(-2, -2)).a, OutlineColor.b*imageSrc0At(srcPos+vec2(-2, 2)).a))
-	// ret.a = max(max(OutlineColor.a*imageSrc0At(srcPos+vec2(2, -2)).a, OutlineColor.a*imageSrc0At(srcPos+vec2(2, 2)).a),
-	// 	max(OutlineColor.a*imageSrc0At(srcPos+vec2(-2, -2)).a, OutlineColor.a*imageSrc0At(srcPos+vec2(-2, 2)).a))
-
 	if imageSrc0At(srcPos).a > 0 {
 		ret.r = imageSrc0At(srcPos).r
 		ret.g = imageSrc0At(srcPos).g

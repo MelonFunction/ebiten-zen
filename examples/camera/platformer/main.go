@@ -214,7 +214,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	cam.Surface.Fill(color.RGBA{255, 128, 128, 255})
 	// Draw tiles
 	tileOps := &ebiten.DrawImageOptions{}
-	cam.Surface.DrawImage(tiles, cam.GetTranslation(tileOps, 0, 0))
+	tileOps = cam.GetTranslation(tileOps, 0, 0)
+	cam.Surface.DrawImage(tiles, tileOps)
 	// Draw the player
 	playerOps := &ebiten.DrawImageOptions{}
 	playerOps = cam.GetTranslation(playerOps, PlayerX, PlayerY)
@@ -248,7 +249,7 @@ func main() {
 	w, h := 640*2, 480*2
 	ebiten.SetWindowSize(w, h)
 	ebiten.SetWindowTitle("Platformer example")
-	ebiten.SetWindowResizable(true)
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
 	cam = zen.NewCamera(w, h, 0, 0, 0, 1)
 

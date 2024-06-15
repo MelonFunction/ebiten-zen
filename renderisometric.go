@@ -164,7 +164,7 @@ func NewSpriteStack(spriteSheet *SpriteSheet, rotation float64, position, rotati
 		RotationPoint: rotationPoint,
 		RotatedPos:    NewVector2(0, 0),
 
-		internalImage:    ebiten.NewImage(int(size)*2, int(size)*2),
+		internalImage:    ebiten.NewImage(int(size)*2, int(size)*2), // TODO this should adjust based on rotationPoint
 		outlineShader:    outlineShader,
 		OutlineThickness: 0,
 		OutlineColor:     color.RGBA{0, 0, 0, 0},

@@ -4,7 +4,9 @@ A simple library to make game development with ebitengine zen-like.
 ### Features:
 - Tiles
     - Dungeon generation
-    - 2.5d cube/wall + floor sprite rendering
+    - Sprite stacks (can be exported from MagicaVoxel)
+    - 2.5d wall/floor/billboard/spritestack rendering
+    - Shader to outline the above
     - Isometric/orthographic projection + world rotation
 - Camera
     - Look at
@@ -15,7 +17,6 @@ A simple library to make game development with ebitengine zen-like.
     - Simple spritesheet creation
     - Use a spritesheet to create multiple animations
     - Can be used with other Zen functions for convenience
-    - 🚧 Prerendered sprite stacks for 2.5d (can be exported from MagicaVoxel)
 - Dungeon Generation
     - 3 styles:
         - Random walk, like the desert from Nuclear Throne
@@ -27,8 +28,9 @@ A simple library to make game development with ebitengine zen-like.
     - Rects, Circles, Points
     - Efficient enough!
 - Vectors
-    - Can Add, Subtract, Rotate, RotateAround
+    - Can Add, Subtract, Rotate, RotateAround + more!
     - Used internally by Zen too
+    - 🚧 {name}InPlace to reduce allocations
 - 🚧 Pathfinding
 - 🚧 Scenes
     - A simple way to set up and switch game scenes

@@ -63,7 +63,7 @@ func (g *Game) Update() error {
 	player.MovePosition(dir.X, dir.Y)
 
 	collisions := collider.CheckCollisions(player)
-	// in a normal game you might want to sort through collisions and only pass
+	// In a normal game you might want to sort through collisions and only pass
 	// certain ones into ResolveCollisions. I recommend using the shape.Get|SetParent
 	// functions to work out what type of object is being collided with.
 	collider.ResolveCollisions(player, collisions)
@@ -118,7 +118,10 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	WindowWidth = outsideWidth
 	WindowHeight = outsideHeight
 
-	// update camera bounds in the collider
+	// If you have a moving camera, you should update the camera bounds in the collider here and only draw what it
+	// returns in the draw function
+	// You will should use .SetParent(camera) on the rectangle shape you make for the camera bounds and then type check
+	// it later so that you don't render it!
 
 	return outsideWidth, outsideHeight
 }
@@ -155,9 +158,12 @@ func main() {
 	collider.NewCircleShape(-200, 300, 50)
 
 	// RectangleShape is a bit more problematic, but CircleShape works well enough!
-	// Also, it can slide against RectangleShapes nicely :D
-	// player = collider.NewRectangleShape(100, 250, 32, 32)
+	// I think most player gameobjects would use a CircleShape for collisions, and most of the "solid" collisions which
+	// need to be resolved will be RectangleShapes. Colliding with other CircleShapes probably wouldn't need a collision
+	// resolution, but would trigger some kind of event, such as an item pickup, taking damage from a projectile etc.
+	// Also, CircleShapes can slide against RectangleShapes nicely (try rotating player direction (G and R by default))
 	player = collider.NewCircleShape(100, 250, 16)
+	// player = collider.NewRectangleShape(100, 250, 32, 32)
 
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
