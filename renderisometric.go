@@ -299,7 +299,7 @@ func NewWall(topSprite *ebiten.Image, wallSprites []*ebiten.Image, height, rotat
 		RotationPoint: rotationPoint,
 		RotatedPos:    NewVector2(0, 0),
 
-		internalImage:    ebiten.NewImage(int(size)*4, int(size)*4),
+		internalImage:    ebiten.NewImage(int(size)*4, int(size)*4+int(height)*2),
 		outlineShader:    outlineShader,
 		OutlineThickness: 0,
 		OutlineColor:     color.RGBA{0, 0, 0, 0},
@@ -329,9 +329,9 @@ func (s *Wall) Draw(camera *Camera) {
 	// draw faces clockwise to prevent image flipping
 	drawFace := func(p1, p2 *Vector2, img *ebiten.Image) {
 		op = &ebiten.DrawImageOptions{}
-		op = camera.GetScale(op, (p2.X-p1.X)/(float64(s.TopSprite.Bounds().Dx())), 1)
+		op = camera.GetScale(op, (p2.X-p1.X)/w, 1)
 		op = camera.GetSkew(op, 0, p1.AngleTo(p2))
-		op.GeoM.Translate(p1.X, p1.Y-d)
+		op.GeoM.Translate(p1.X, p1.Y-s.Height)
 		op.GeoM.Translate(-s.RotationPoint.X, -s.RotationPoint.Y+s.Height)
 		op.GeoM.Translate(
 			float64(s.internalImage.Bounds().Dx())/2,
@@ -339,7 +339,9 @@ func (s *Wall) Draw(camera *Camera) {
 		if s.OutlineThickness > 0 {
 			s.internalImage.DrawImage(img, op)
 		} else {
-			op = camera.GetTranslation(op, s.RotatedPos.X-float64(s.internalImage.Bounds().Dx())/2, s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())/2-s.Height)
+			op = camera.GetTranslation(op,
+				s.RotatedPos.X-float64(s.internalImage.Bounds().Dx())/2,
+				s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())/2-s.Height)
 			camera.Surface.DrawImage(img, op)
 		}
 	}
@@ -365,14 +367,10 @@ func (s *Wall) Draw(camera *Camera) {
 
 	if s.OutlineThickness > 0 {
 		s.internalImage.DrawImage(s.TopSprite, op)
-	}
-
-	if !(s.OutlineThickness > 0) {
-		op = camera.GetTranslation(op, s.RotatedPos.X-float64(s.internalImage.Bounds().Dx())/2, s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())/2-s.Height)
-		camera.Surface.DrawImage(s.TopSprite, op)
-	} else {
 		op = &ebiten.DrawImageOptions{}
-		op = camera.GetTranslation(op, s.RotatedPos.X-float64(s.internalImage.Bounds().Dx())/2, s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())/2-s.Height)
+		op = camera.GetTranslation(op,
+			s.RotatedPos.X-float64(s.internalImage.Bounds().Dx())/2,
+			s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())/2-s.Height)
 		sp := &ebiten.DrawRectShaderOptions{}
 		sp.GeoM = op.GeoM
 		sp.Uniforms = map[string]any{
@@ -381,5 +379,10 @@ func (s *Wall) Draw(camera *Camera) {
 		}
 		sp.Images[0] = s.internalImage
 		camera.Surface.DrawRectShader(s.internalImage.Bounds().Dx(), s.internalImage.Bounds().Dy(), s.outlineShader, sp)
+	} else {
+		op = camera.GetTranslation(op,
+			s.RotatedPos.X-float64(s.internalImage.Bounds().Dx())/2,
+			s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())/2-s.Height)
+		camera.Surface.DrawImage(s.TopSprite, op)
 	}
 }

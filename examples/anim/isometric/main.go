@@ -20,6 +20,7 @@ import (
 
 //go:embed car.png
 //go:embed tiles.png
+//go:embed tall_wall.png
 var embedded embed.FS
 
 // vars
@@ -28,14 +29,17 @@ var (
 
 	floor       *zen.Floor
 	wall        *zen.Wall
+	tallWall    *zen.Wall
 	spriteStack *zen.SpriteStack
 	billboard   *zen.Billboard
 	stress      []zen.IsometricDrawable
 
-	WindowWidth      = 640 * 2
-	WindowHeight     = 480 * 2
-	SpriteSheetTiles *zen.SpriteSheet
-	SpriteSheetCar   *zen.SpriteSheet
+	WindowWidth              = 640 * 2
+	WindowHeight             = 480 * 2
+	SpriteSheetTiles         *zen.SpriteSheet
+	SpriteSheetCar           *zen.SpriteSheet
+	SpriteSheetTallWallSides *zen.SpriteSheet
+	SpriteSheetTallWallTop   *zen.SpriteSheet
 
 	ErrNormalExit = errors.New("Normal exit")
 )
@@ -81,6 +85,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	camera.Surface.Clear()
 	floor.Draw(camera)
 	wall.Draw(camera)
+	tallWall.Draw(camera)
 	spriteStack.Draw(camera)
 	billboard.Draw(camera)
 
@@ -130,6 +135,20 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if b, err := embedded.ReadFile("tall_wall.png"); err == nil {
+		if s, err := png.Decode(bytes.NewReader(b)); err == nil {
+			sprites := ebiten.NewImageFromImage(s)
+			SpriteSheetTallWallSides = zen.NewSpriteSheet(sprites, 16*2, 16*4, zen.SpriteSheetOptions{
+				Scale: 2,
+			})
+			SpriteSheetTallWallTop = zen.NewSpriteSheet(sprites, 16*2, 16*2, zen.SpriteSheetOptions{
+				Scale: 2,
+			})
+		}
+	} else {
+		log.Fatal(err)
+	}
+
 	game := &Game{}
 	ebiten.SetWindowSize(WindowWidth, WindowHeight)
 	ebiten.SetWindowTitle("Wall and floor rendering example")
@@ -159,15 +178,32 @@ func main() {
 			SpriteSheetTiles.GetSprite(1, 0),
 			SpriteSheetTiles.GetSprite(1, 0),
 		},
-		float64(SpriteSheetTiles.SpriteWidth),
+		float64(SpriteSheetTiles.SpriteHeight),
 		0,
-		zen.NewVector2(0, 0),
 		// zen.NewVector2(0, 0),
-		// zen.NewVector2(-float64(SpriteSheetTiles.SpriteWidth)*5, 0),
+		// zen.NewVector2(0, 0),
+		zen.NewVector2(-float64(SpriteSheetTiles.SpriteWidth)*8, 0),
 		zen.NewVector2(float64(SpriteSheetTiles.SpriteWidth)/2, float64(SpriteSheetTiles.SpriteHeight)/2),
 	)
 	wall.OutlineColor = color.RGBA{255, 0, 0, 255}
 	wall.OutlineThickness = 2
+
+	tallWall = zen.NewWall(
+		SpriteSheetTallWallTop.GetSprite(0, 2),
+		[]*ebiten.Image{
+			SpriteSheetTallWallSides.GetSprite(0, 0),
+			SpriteSheetTallWallSides.GetSprite(0, 0),
+			SpriteSheetTallWallSides.GetSprite(0, 0),
+			SpriteSheetTallWallSides.GetSprite(0, 0),
+		},
+		float64(SpriteSheetTallWallSides.SpriteHeight),
+		0,
+		zen.NewVector2(0, 0),
+		// zen.NewVector2(-float64(SpriteSheetTiles.SpriteWidth)*4, -float64(SpriteSheetTiles.SpriteWidth)*4),
+		zen.NewVector2(float64(SpriteSheetTallWallTop.SpriteWidth)/2, float64(SpriteSheetTallWallTop.SpriteHeight)/2),
+	)
+	tallWall.OutlineColor = color.RGBA{255, 0, 0, 255}
+	tallWall.OutlineThickness = 2
 
 	spriteStack = zen.NewSpriteStack(
 		SpriteSheetCar,
