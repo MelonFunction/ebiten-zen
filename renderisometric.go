@@ -14,6 +14,9 @@ var outline_go []byte
 
 var outlineShader *ebiten.Shader
 
+// MaxOutlineThickness is used when creating internal images, ensuring there's enough space for the outline to be drawn
+var MaxOutlineThickness = 8
+
 // loadOutlineShader tries to load the outline shader, panics on error
 func loadOutlineShader() {
 	if outlineShader == nil {
@@ -48,7 +51,6 @@ type Billboard struct {
 // SpriteStack represents a stack of sprites (or basically floor tiles)
 type SpriteStack struct {
 	Position *Vector2
-	Height   float64 // height of the top face of the tile
 
 	Rotation      float64 // individual rotation
 	RotationPoint *Vector2
@@ -97,18 +99,28 @@ type Wall struct {
 }
 
 // NewBillboard returns a *Billboard
-func NewBillboard(sprite *ebiten.Image, position, rotationPoint *Vector2) *Billboard {
-	size := math.Max(float64(sprite.Bounds().Dx()), float64(sprite.Bounds().Dy()))
+//
+// ⚠️ Remember to set MaxOutlineThickness before creating any objects so that the internal texture is sized correctly!
+//
+// rotationPointOffset is the point which the object rotates around, center by default
+func NewBillboard(sprite *ebiten.Image, position, rotationPointOffset *Vector2) *Billboard {
+	size := math.Sqrt(
+		math.Pow(float64(sprite.Bounds().Dx()+int(math.Abs(rotationPointOffset.X*2))), 2) +
+			math.Pow(float64(sprite.Bounds().Dy()+int(math.Abs(rotationPointOffset.Y*2))), 2))
 
 	loadOutlineShader()
+
+	spriteCenter := NewVector2(float64(sprite.Bounds().Dx())/2, float64(sprite.Bounds().Dy())) // base of the sprite
+
+	// TODO sprite rotation
 
 	s := &Billboard{
 		Sprite:        sprite,
 		Position:      position,
-		RotationPoint: rotationPoint,
+		RotationPoint: spriteCenter.Add(rotationPointOffset),
 		RotatedPos:    NewVector2(0, 0),
 
-		internalImage:    ebiten.NewImage(int(size)*4, int(size)*4),
+		internalImage:    ebiten.NewImage(int(size)+MaxOutlineThickness*2, int(size)+MaxOutlineThickness*2),
 		outlineShader:    outlineShader,
 		OutlineThickness: 0,
 		OutlineColor:     color.RGBA{0, 0, 0, 0},
@@ -127,19 +139,24 @@ func (s *Billboard) Draw(camera *Camera) {
 
 	op.GeoM.Translate(
 		float64(s.internalImage.Bounds().Dx())/2,
-		float64(s.internalImage.Bounds().Dy())/2)
+		float64(s.internalImage.Bounds().Dy())*0.75)
 
 	if s.OutlineThickness > 0 {
 		s.internalImage.Clear()
+		// s.internalImage.Fill(color.RGBA{64, 0, 0, 128})
 		s.internalImage.DrawImage(s.Sprite, op)
 	}
 
-	op = camera.GetTranslation(op, s.RotatedPos.X-float64(s.internalImage.Bounds().Dx())/2, s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())/2)
+	op = camera.GetTranslation(op,
+		s.RotatedPos.X-float64(s.internalImage.Bounds().Dx())/2,
+		s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())*0.75)
 	if !(s.OutlineThickness > 0) {
 		camera.Surface.DrawImage(s.Sprite, op)
 	} else {
 		op = &ebiten.DrawImageOptions{}
-		op = camera.GetTranslation(op, s.RotatedPos.X-float64(s.internalImage.Bounds().Dx())/2, s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())/2)
+		op = camera.GetTranslation(op,
+			s.RotatedPos.X-float64(s.internalImage.Bounds().Dx())/2,
+			s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())*0.75)
 		sp := &ebiten.DrawRectShaderOptions{}
 		sp.GeoM = op.GeoM
 		sp.Uniforms = map[string]any{
@@ -152,19 +169,28 @@ func (s *Billboard) Draw(camera *Camera) {
 }
 
 // NewSpriteStack returns a *SpriteStack
-func NewSpriteStack(spriteSheet *SpriteSheet, rotation float64, position, rotationPoint *Vector2) *SpriteStack {
-	size := math.Max(float64(spriteSheet.SpriteWidth), float64(spriteSheet.SpriteHeight))
+//
+// ⚠️ Remember to set MaxOutlineThickness before creating any objects so that the internal texture is sized correctly!
+//
+// rotationPointOffset is the point which the object rotates around, center by default
+func NewSpriteStack(spriteSheet *SpriteSheet, rotation float64, position, rotationPointOffset *Vector2) *SpriteStack {
+	size := math.Sqrt(
+		math.Pow(float64(spriteSheet.SpriteWidth+int(math.Abs(rotationPointOffset.X*2))), 2) +
+			math.Pow(float64(spriteSheet.SpriteHeight+int(math.Abs(rotationPointOffset.Y*2))), 2))
 
 	loadOutlineShader()
+
+	spriteCenter := NewVector2(float64(spriteSheet.SpriteWidth)/2, float64(spriteSheet.SpriteHeight)/2)
+	height := int(float64(spriteSheet.SpritesHigh) * math.Max(1, float64(spriteSheet.Scale)+0.5)) // values used from Draw
 
 	s := &SpriteStack{
 		SpriteSheet:   spriteSheet,
 		Rotation:      rotation,
 		Position:      position,
-		RotationPoint: rotationPoint,
+		RotationPoint: spriteCenter.Add(rotationPointOffset),
 		RotatedPos:    NewVector2(0, 0),
 
-		internalImage:    ebiten.NewImage(int(size)*2, int(size)*2), // TODO this should adjust based on rotationPoint
+		internalImage:    ebiten.NewImage(int(size)+MaxOutlineThickness*2, int(size)+height+MaxOutlineThickness*2),
 		outlineShader:    outlineShader,
 		OutlineThickness: 0,
 		OutlineColor:     color.RGBA{0, 0, 0, 0},
@@ -228,19 +254,27 @@ func (s *SpriteStack) Draw(camera *Camera) {
 }
 
 // NewFloor returns a *Floor
-func NewFloor(sprite *ebiten.Image, rotation float64, position, rotationPoint *Vector2) *Floor {
-	size := math.Max(float64(sprite.Bounds().Dx()), float64(sprite.Bounds().Dy()))
+//
+// ⚠️ Remember to set MaxOutlineThickness before creating any objects so that the internal texture is sized correctly!
+//
+// rotationPointOffset is the point which the object rotates around, center by default
+func NewFloor(sprite *ebiten.Image, rotation float64, position, rotationPointOffset *Vector2) *Floor {
+	size := math.Sqrt(
+		math.Pow(float64(sprite.Bounds().Dx()+int(math.Abs(rotationPointOffset.X*2))), 2) +
+			math.Pow(float64(sprite.Bounds().Dy()+int(math.Abs(rotationPointOffset.Y*2))), 2))
 
 	loadOutlineShader()
+
+	spriteCenter := NewVector2(float64(sprite.Bounds().Dx())/2, float64(sprite.Bounds().Dy())/2)
 
 	return &Floor{
 		Sprite:        sprite,
 		Rotation:      rotation,
 		Position:      position,
-		RotationPoint: rotationPoint,
+		RotationPoint: spriteCenter.Add(rotationPointOffset),
 		RotatedPos:    NewVector2(0, 0),
 
-		internalImage:    ebiten.NewImage(int(size)*4, int(size)*4),
+		internalImage:    ebiten.NewImage(int(size)+MaxOutlineThickness*2, int(size)+MaxOutlineThickness*2),
 		outlineShader:    outlineShader,
 		OutlineThickness: 0,
 		OutlineColor:     color.RGBA{0, 0, 0, 0},
@@ -285,10 +319,21 @@ func (s *Floor) Draw(camera *Camera) {
 }
 
 // NewWall returns a *Wall
-func NewWall(topSprite *ebiten.Image, wallSprites []*ebiten.Image, height, rotation float64, position, rotationPoint *Vector2) *Wall {
-	size := math.Sqrt(float64(topSprite.Bounds().Dx()*topSprite.Bounds().Dx()) + float64(topSprite.Bounds().Dy()*topSprite.Bounds().Dy()))
+//
+// ⚠️ Remember to set MaxOutlineThickness before creating any objects so that the internal texture is sized correctly!
+//
+// rotationPointOffset is the point which the object rotates around, center by default
+func NewWall(topSprite *ebiten.Image, wallSprites []*ebiten.Image, height, rotation float64, position, rotationPointOffset *Vector2) *Wall {
+	size := math.Sqrt(
+		math.Pow(float64(topSprite.Bounds().Dx()+int(math.Abs(rotationPointOffset.X*2))), 2) +
+			math.Pow(float64(topSprite.Bounds().Dy()+int(math.Abs(rotationPointOffset.Y*2))), 2))
 
 	loadOutlineShader()
+
+	// TODO height/topSprite offset (to create some effects)
+	// TODO dynamic transparency (ColorM.Scale alpha)
+
+	spriteCenter := NewVector2(float64(topSprite.Bounds().Dx())/2, float64(topSprite.Bounds().Dy())/2)
 
 	w := &Wall{
 		TopSprite:     topSprite,
@@ -296,10 +341,11 @@ func NewWall(topSprite *ebiten.Image, wallSprites []*ebiten.Image, height, rotat
 		Height:        height,
 		Rotation:      rotation,
 		Position:      position,
-		RotationPoint: rotationPoint,
+		RotationPoint: spriteCenter.Add(rotationPointOffset),
 		RotatedPos:    NewVector2(0, 0),
 
-		internalImage:    ebiten.NewImage(int(size)*4, int(size)*4+int(height)*2),
+		// remember to add thickness
+		internalImage:    ebiten.NewImage(int(size)+MaxOutlineThickness*2, int(size)+int(height)+MaxOutlineThickness*2),
 		outlineShader:    outlineShader,
 		OutlineThickness: 0,
 		OutlineColor:     color.RGBA{0, 0, 0, 0},
@@ -332,7 +378,7 @@ func (s *Wall) Draw(camera *Camera) {
 		op = camera.GetScale(op, (p2.X-p1.X)/w, 1)
 		op = camera.GetSkew(op, 0, p1.AngleTo(p2))
 		op.GeoM.Translate(p1.X, p1.Y-s.Height)
-		op.GeoM.Translate(-s.RotationPoint.X, -s.RotationPoint.Y+s.Height)
+		op.GeoM.Translate(-s.RotationPoint.X, -s.RotationPoint.Y+s.Height/2)
 		op.GeoM.Translate(
 			float64(s.internalImage.Bounds().Dx())/2,
 			float64(s.internalImage.Bounds().Dy())/2)
@@ -341,7 +387,7 @@ func (s *Wall) Draw(camera *Camera) {
 		} else {
 			op = camera.GetTranslation(op,
 				s.RotatedPos.X-float64(s.internalImage.Bounds().Dx())/2,
-				s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())/2-s.Height)
+				s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())/2-s.Height/2)
 			camera.Surface.DrawImage(img, op)
 		}
 	}
@@ -363,14 +409,14 @@ func (s *Wall) Draw(camera *Camera) {
 	op.GeoM.Rotate(rotation)
 	op.GeoM.Translate(
 		float64(s.internalImage.Bounds().Dx())/2,
-		float64(s.internalImage.Bounds().Dy())/2)
+		float64(s.internalImage.Bounds().Dy())/2-s.Height/2)
 
 	if s.OutlineThickness > 0 {
 		s.internalImage.DrawImage(s.TopSprite, op)
 		op = &ebiten.DrawImageOptions{}
 		op = camera.GetTranslation(op,
 			s.RotatedPos.X-float64(s.internalImage.Bounds().Dx())/2,
-			s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())/2-s.Height)
+			s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())/2-s.Height/2)
 		sp := &ebiten.DrawRectShaderOptions{}
 		sp.GeoM = op.GeoM
 		sp.Uniforms = map[string]any{
@@ -382,7 +428,7 @@ func (s *Wall) Draw(camera *Camera) {
 	} else {
 		op = camera.GetTranslation(op,
 			s.RotatedPos.X-float64(s.internalImage.Bounds().Dx())/2,
-			s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())/2-s.Height)
+			s.RotatedPos.Y-float64(s.internalImage.Bounds().Dy())/2-s.Height/2)
 		camera.Surface.DrawImage(s.TopSprite, op)
 	}
 }
