@@ -32,8 +32,6 @@ A simple library to make game development with ebitengine zen-like.
     - Used internally by Zen too
     - 🚧 {name}InPlace to reduce allocations
 - 🚧 Pathfinding
-- 🚧 Scenes
-    - A simple way to set up and switch game scenes
 - 🚧 UI
     - Buttons
     - Inputs
